@@ -61,10 +61,17 @@ backend {{ name }}
     stick           {{ stick }}
                 {% endfor %}
             {% endif %}
-            {% for srv in value.servers %}
-    server          {{ srv }}
-            {% endfor %}
-        {% endfor %}
+            {% if value.servers_type == 'mysql' %}
+                {% for srv in value.servers %}
+    server          {{ hostvars[srv]['ansible_hostname'] }} {{ hostvars[srv]['ansible_' + value.servers_interface]['ipv4']['address'] }}:{{ hostvars[srv]['mysql_port'] | default(3306) }} weight {% if hostvars[srv]['mysql_replication_role'] is defined and hostvars[srv]['mysql_replication_role'] == 'master' %}{% if value.mode_rw is defined and value.mode_rw %} 100 {% else %}  40{% endif %}{% else %}{% if value.mode_rw is defined and value.mode_rw %}  10 {% else %}  60{% endif %}{% endif %} check inter {{ value.interval}} rise {{ value.rise }} fall {{ value.fall }}{% if hostvars[srv]['mysql_replication_role'] is defined and hostvars[srv]['mysql_replication_role'] == 'slave' and value.mode_rw is defined and value.mode_rw %} backup{% endif %}
 
+                {% endfor %}
+            {% else %}
+                {% for srv in value.servers %}
+    server          {{ srv }}
+
+                {% endfor %}
+            {% endif %}
+        {% endfor %}
     {% endfor %}
 {% endif %}
